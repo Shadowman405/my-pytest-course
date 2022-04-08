@@ -18,7 +18,7 @@ from django.urls import path,include
 from rest_framework import routers
 
 #from companies.urls import companies_router
-from api.coronavstech.companies.urls import companies_router
+from companies.urls import companies_router
 
 #router = routers.DefaultRouter()
 
