@@ -17,9 +17,12 @@ from django.contrib import admin
 from django.urls import path,include
 from rest_framework import routers
 
-from companies.urls import companies_router
+#from companies.urls import companies_router
+from api.coronavstech.companies.urls import companies_router
 
-router = routers.DefaultRouter()
+#router = routers.DefaultRouter()
+
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
