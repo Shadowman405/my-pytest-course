@@ -63,7 +63,16 @@ class TestPostCompanies(BasicCompanyApiTestCase):
     def test_create_company_with_wrong_status_status_should_fail(self) -> None:
         response = self.client.post(path=self.companies_url, data={"name": "Samsung", "status": "bebra_layoffs"})
         self.assertEqual(response.status_code, 400)
-        self.assertIn("is not valid", str(response.content))
+        self.assertIn("bebra_layoffs", str(response.content))
+
+    @pytest.mark.skip
+    def test_should_be_ok_if_skip(self) -> None:
+        self.assertEqual(1, 2)
+
+    @pytest.mark.xfail
+    def test_should_be_ok_if_fails(self) -> None:
+        self.assertEqual(1 , 2)
+
 
 
 
