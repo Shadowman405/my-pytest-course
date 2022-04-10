@@ -7,9 +7,11 @@ from django.test import Client
 from django.urls import reverse
 
 from companies.models import Company
+companies_url = reverse("companies-list")
+pytestmark = pytest.mark.django_db
 
+#--------------------Test Get Companies------------------
 
-@pytest.mark.django_db
 class BasicCompanyApiTestCase(TestCase):
     def setUp(self) -> None:
         self.client = Client()
@@ -18,77 +20,68 @@ class BasicCompanyApiTestCase(TestCase):
     def tearDown(self) -> None:
         pass
 
+def test_zero_companies_should_return_empty_list(client) -> None:
+    response = client.get(companies_url)
+    assert response.status_code == 200
+    assert json.loads(response.content) == []
 
-class TestGetCompanies(BasicCompanyApiTestCase):
-    def test_zero_companies_should_return_empty_list(self) -> None:
-        response = self.client.get(self.companies_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(json.loads(response.content), [])
+def test_one_company_exists_should_succed(client) -> None:
+    amazon = Company.objects.create(name="Amazon")
+    response = client.get(companies_url)
+    response_content = json.loads(response.content)[0]
+    assert response_content.get("name") == amazon.name
+    assert response_content.get("status") == amazon.status
+    assert response_content.get("notes") == amazon.notes
+    assert response_content.get("application_link") == amazon.application_link
 
-    def test_one_company_exists_should_succed(self) -> None:
-        amazon = Company.objects.create(name="Amazon")
-        response = self.client.get(self.companies_url)
-        response_content = json.loads(response.content)[0]
-        self.assertEqual(response_content.get("name"), amazon.name)
-        self.assertEqual(response_content.get("status"), amazon.status)
-        self.assertEqual(response_content.get("notes"), amazon.notes)
-        self.assertEqual(
-            response_content.get("application_link"), amazon.application_link
-        )
+    amazon.delete()
 
-        amazon.delete()
+#--------------------Test Post Companies------------------
 
+def test_create_company_without_arguments_should_fail(client) -> None:
+    response = client.post(
+        path=companies_url,
+    )
+    assert response.status_code == 400
+    assert json.loads(response.content) == {"name": ["This field is required."]}
 
-class TestPostCompanies(BasicCompanyApiTestCase):
-    def test_create_company_without_arguments_should_fail(self) -> None:
-        response = self.client.post(
-            path=self.companies_url,
-        )
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            json.loads(response.content), {"name": ["This field is required."]}
-        )
+def test_create_exists_company_should_fail(client) -> None:
+    Company.objects.create(name="Amazon")
+    response = client.post(path=companies_url, data={"name": "Amazon"})
+    assert response.status_code == 400
+    assert json.loads(response.content) == {"name": ["company with this name already exists."]}
 
-    def test_create_exists_company_should_fail(self) -> None:
-        Company.objects.create(name="Amazon")
-        response = self.client.post(path=self.companies_url, data={"name": "Amazon"})
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            json.loads(response.content),
-            {"name": ["company with this name already exists."]},
-        )
+def test_create_company_with_only_name_all_fields_should_default(client) -> None:
+    response = client.post(path=companies_url, data={"name": "SamsungE"})
+    assert response.status_code == 201
+    response_content = json.loads(response.content)
+    assert response_content.get("name") == "SamsungE"
+    assert response_content.get("status") == "Hiring"
+    assert response_content.get("notes") == ""
+    assert response_content.get("application_link") == ""
 
-    def test_create_company_with_only_name_all_fields_should_default(self) -> None:
-        response = self.client.post(path=self.companies_url, data={"name": "SamsungE"})
-        self.assertEqual(response.status_code, 201)
-        response_content = json.loads(response.content)
-        self.assertEqual(response_content.get("name"), "SamsungE")
-        self.assertEqual(response_content.get("status"), "Hiring")
-        self.assertEqual(response_content.get("notes"), "")
-        self.assertEqual(response_content.get("application_link"), "")
+def test_create_company_with_layoffs_status_should_succes(client) -> None:
+    response = client.post(
+        path=companies_url, data={"name": "Samsung", "status": "Lauoffs"}
+    )
+    assert response.status_code == 201
+    response_content = json.loads(response.content)
+    assert response_content.get("status") == "Lauoffs"
 
-    def test_create_company_with_layoffs_status_should_succes(self) -> None:
-        response = self.client.post(
-            path=self.companies_url, data={"name": "Samsung", "status": "Lauoffs"}
-        )
-        self.assertEqual(response.status_code, 201)
-        response_content = json.loads(response.content)
-        self.assertEqual(response_content.get("status"), "Lauoffs")
+def test_create_company_with_wrong_status_status_should_fail(client) -> None:
+    response = client.post(
+        path=companies_url, data={"name": "Samsung", "status": "bebra_layoffs"}
+    )
+    assert response.status_code == 400
+    assert "bebra_layoffs" in str(response.content)
 
-    def test_create_company_with_wrong_status_status_should_fail(self) -> None:
-        response = self.client.post(
-            path=self.companies_url, data={"name": "Samsung", "status": "bebra_layoffs"}
-        )
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("bebra_layoffs", str(response.content))
+@pytest.mark.skip
+def test_should_be_ok_if_skip() -> None:
+    assert 1 == 2
 
-    @pytest.mark.skip
-    def test_should_be_ok_if_skip(self) -> None:
-        self.assertEqual(1, 2)
-
-    @pytest.mark.xfail
-    def test_should_be_ok_if_fails(self) -> None:
-        self.assertEqual(1, 2)
+@pytest.mark.xfail
+def test_should_be_ok_if_fails() -> None:
+     assert 1 == 2
 
 
 def raise_covid19_exception() -> None:
