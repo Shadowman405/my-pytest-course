@@ -75,6 +75,7 @@ def test_create_company_with_wrong_status_status_should_fail(client) -> None:
     assert response.status_code == 400
     assert "bebra_layoffs" in str(response.content)
 
+
 @pytest.mark.skip
 def test_should_be_ok_if_skip() -> None:
     assert 1 == 2
